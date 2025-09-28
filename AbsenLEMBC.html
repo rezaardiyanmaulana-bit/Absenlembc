@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absensi Pelatih Drumband LEMBC Management</title>
+    <!-- Bootstrap CSS untuk responsive -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- PWA Manifest (untuk install di HP) -->
+    <link rel="manifest" href="data:application/manifest+json,{
+        'name': 'Absensi Drumband LEMBC',
+        'short_name': 'Absensi LEMBC',
+        'start_url': '.',
+        'display': 'standalone',
+        'background_color': '#ffffff',
+        'theme_color': '#007bff',
+        'icons': [{'src': 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiBmaWxsPSIjMDA3YmZmIi8+Cjx0ZXh0IHg9Ijk2IiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRydW1iYW5kPC90ZXh0Pgo8L3N2Zz4=', 'sizes': '192x192', 'type': 'image/svg+xml'}]
+    }">
+    <meta name="theme-color" content="#007bff">
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 800px; }
+        #rekap { margin-top: 20px; }
+        table { font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">Absensi Pelatih Drumband TIM LEMBC MANAGEMENT</h1>
+        
+        <!-- Form Input Absensi -->
+        <div class="card mb-4">
+            <div class="card-header">Input Absensi Latihan</div>
+            <div class="card-body">
+                <form id="formAbsensi">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nama" class="form-label">Nama Pelatih</label>
+                            <select class="form-select" id="nama" required>
+                                <option value="">Pilih Pelatih...</option>
+                            </select>
+                            <div class="mt-2">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="newPelatih" placeholder="Tambah pelatih baru">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="tambahPelatih()">Tambah</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="tanggal" class="form-label">Tanggal Latihan</label>
+                            <input type="date" class="form-control" id="tanggal" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="lokasi" class="form-label">Lokasi Sekolah</label>
+                            <select class="form-select" id="lokasi" required>
+                                <option value="">Pilih Lokasi...</option>
+                            </select>
+                            <div class="mt-2">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="newLokasi" placeholder="Tambah lokasi baru">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="tambahLokasi()">Tambah</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" required>
+                                <option value="">Pilih...</option>
+                                <option value="Hadir">Hadir</option>
+                                <option value="Tidak Hadir">Tidak Hadir</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Simpan Absensi</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Daftar Absensi -->
+        <div class="card mb-4">
+            <div class="card-header">Daftar Absensi</div>
+            <div class="card-body">
+                <button id="exportBtn" class="btn btn-secondary mb-3">Export ke CSV</button>
+                <div id="daftarAbsensi"></div>
+            </div>
+        </div>
+
+        <!-- Rekap Per Bulan -->
+        <div class="card" id="rekap">
+            <div class="card-header">Rekap Absensi Per Bulan</div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="bulanRekap" class="form-label">Pilih Bulan/Tahun</label>
+                        <input type="month" class="form-control" id="bulanRekap">
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <button id="tampilRekap" class="btn btn-primary">Tampilkan Rekap</button>
+                    </div>
+                </div>
+                <div id="tabelRekap"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let absensiData = JSON.parse(localStorage.getItem('absensiDrumband')) || [];
+        let pelatihList = JSON.parse(localStorage.getItem('pelatihList')) || [];
+        let lokasiList = JSON.parse(localStorage.getItem('lokasiList')) || [];
+
+        // Simpan data ke localStorage
+        function simpanData() {
+            localStorage.setItem('absensiDrumband', JSON.stringify(absensiData));
+            localStorage.setItem('pelatihList', JSON.stringify(pelatihList));
+            localStorage.setItem('lokasiList', JSON.stringify(lokasiList));
+            tampilkanDaftar();
+            updateDropdowns();
+        }
+
+        // Update dropdown lists
+        function updateDropdowns() {
+            const namaSelect = document.getElementById('nama');
+            const lokasiSelect = document.getElementById('lokasi');
+            
+            // Clear existing options except the first one
+            while (namaSelect.options.length > 1) {
+                namaSelect.remove(1);
+            }
+            while (lokasiSelect.options.length > 1) {
+                lokasiSelect.remove(1);
+            }
+            
+            // Add pelatih options
+            pelatihList.forEach(pelatih => {
+                const option = document.createElement('option');
+                option.value = pelatih;
+                option.textContent = pelatih;
+                namaSelect.appendChild(option);
+            });
+            
+            // Add lokasi options
+            lokasiList.forEach(lokasi => {
+                const option = document.createElement('option');
+                option.value = lokasi;
+                option.textContent = lokasi;
+                lokasiSelect.appendChild(option);
+            });
+        }
+
+        // Tampilkan daftar absensi
+        function tampilkanDaftar() {
+            const daftar = document.getElementById('daftarAbsensi');
+            if (absensiData.length === 0) {
+                daftar.innerHTML = '<p class="text-muted">Belum ada data absensi.</p>';
+                return;
+            }
+            let html = '<table class="table table-striped"><thead><tr><th>Tanggal</th><th>Nama Pelatih</th><th>Lokasi</th><th>Status</th></tr></thead><tbody>';
+            absensiData.forEach(item => {
+                html += `<tr><td>${item.tanggal}</td><td>${item.nama}</td><td>${item.lokasi}</td><td><span class="badge ${item.status === 'Hadir' ? 'bg-success' : 'bg-danger'}">${item.status}</span></td></tr>`;
+            });
+            html += '</tbody></table>';
+            daftar.innerHTML = html;
+        }
+
+        // Input form submit
+        document.getElementById('formAbsensi').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nama = document.getElementById('nama').value;
+            const tanggal = document.getElementById('tanggal').value;
+            const lokasi = document.getElementById('lokasi').value;
+            const status = document.getElementById('status').value;
+
+            if (!nama || !tanggal || !lokasi || !status) {
+                alert('Lengkapi semua field!');
+                return;
+            }
+
+            absensiData.push({ nama, tanggal, lokasi, status });
+            simpanData();
+
+            // Reset form but keep dropdown selections
+            document.getElementById('tanggal').valueAsDate = new Date();
+            document.getElementById('status').value = '';
+            document.getElementById('nama').value = '';
+            document.getElementById('lokasi').value = '';
+            alert('Absensi disimpan!');
+        });
+
+        // Tambah pelatih baru
+        function tambahPelatih() {
+            const newPelatih = document.getElementById('newPelatih').value.trim();
+            if (newPelatih && !pelatihList.includes(newPelatih)) {
+                pelatihList.push(newPelatih);
+                simpanData();
+                document.getElementById('newPelatih').value = '';
+                alert('Pelatih berhasil ditambahkan!');
+            } else if (pelatihList.includes(newPelatih)) {
+                alert('Pelatih sudah ada dalam daftar!');
+            } else {
+                alert('Masukkan nama pelatih baru!');
+            }
+        }
+
+        // Tambah lokasi baru
+        function tambahLokasi() {
+            const newLokasi = document.getElementById('newLokasi').value.trim();
+            if (newLokasi && !lokasiList.includes(newLokasi)) {
+                lokasiList.push(newLokasi);
+                simpanData();
+                document.getElementById('newLokasi').value = '';
+                alert('Lokasi berhasil ditambahkan!');
+            } else if (lokasiList.includes(newLokasi)) {
+                alert('Lokasi sudah ada dalam daftar!');
+            } else {
+                alert('Masukkan lokasi baru!');
+            }
+        }
+
+        // Rekap per bulan
+        document.getElementById('tampilRekap').addEventListener('click', function() {
+            const bulanTahun = document.getElementById('bulanRekap').value;
+            if (!bulanTahun) {
+                alert('Pilih bulan/tahun terlebih dahulu.');
+                return;
+            }
+
+            const [tahun, bulan] = bulanTahun.split('-');
+            const dataBulan = absensiData.filter(item => {
+                const itemDate = new Date(item.tanggal);
+                return itemDate.getFullYear() == tahun && (itemDate.getMonth() + 1) == bulan;
+            });
+
+            if (dataBulan.length === 0) {
+                document.getElementById('tabelRekap').innerHTML = '<p class="text-muted">Tidak ada data untuk bulan ini.</p>';
+                return;
+            }
+
+            // Kelompokkan per pelatih
+            const pelatihMap = {};
+            dataBulan.forEach(item => {
+                if (!pelatihMap[item.nama]) {
+                    pelatihMap[item.nama] = { hadir: 0, tidakHadir: 0, total: 0, lokasiUnik: new Set() };
+                }
+                pelatihMap[item.nama].total++;
+                if (item.status === 'Hadir') pelatihMap[item.nama].hadir++;
+                else pelatihMap[item.nama].tidakHadir++;
+                pelatihMap[item.nama].lokasiUnik.add(item.lokasi);
+            });
+
+            let html = '<h5>Rekap Bulan ' + new Date(tahun, bulan - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) + '</h5>';
+            html += '<table class="table table-bordered"><thead><tr><th>Pelatih</th><th>Total Latihan</th><th>Hadir</th><th>Tidak Hadir</th><th>Persentase Hadir</th><th>Lokasi Unik</th></tr></thead><tbody>';
+            for (let nama in pelatihMap) {
+                const data = pelatihMap[nama];
+                const persen = data.total > 0 ? ((data.hadir / data.total) * 100).toFixed(1) : 0;
+                html += `<tr><td>${nama}</td><td>${data.total}</td><td>${data.hadir}</td><td>${data.tidakHadir}</td><td>${persen}%</td><td>${Array.from(data.lokasiUnik).join(', ')}</td></tr>`;
+            }
+            html += '</tbody></table>';
+            document.getElementById('tabelRekap').innerHTML = html;
+        });
+
+        // Export CSV
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            if (absensiData.length === 0) {
+                alert('Tidak ada data untuk diekspor.');
+                return;
+            }
+            let csv = 'Tanggal,Nama Pelatih,Lokasi,Status\n';
+            absensiData.forEach(item => {
+                csv += `"${item.tanggal}","${item.nama}","${item.lokasi}","${item.status}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'absensi_drumband_lembc.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // Inisialisasi
+        tampilkanDaftar();
+        updateDropdowns();
+        document.getElementById('tanggal').valueAsDate = new Date(); // Set tanggal hari ini
+        document.getElementById('bulanRekap').value = new Date().toISOString().slice(0, 7); // Set bulan ini
+    </script>
+</body>
+</html>
